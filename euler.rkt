@@ -1,26 +1,72 @@
 #lang racket
 
+;; This Fibonacci function follows directly from its mathematical definition.
+;; It looks pretty for sure, but absolutely useless for n > 10
 (define (fib n)
   (cond [(= n 1) 1]
         [(= n 2) 2]
-        {else (+ (fib (- n 1))
-                 (fib (- n 2)))}))
+        [else (+ (fib (- n 1))
+                 (fib (- n 2)))]))
 
+;; This version of the Fibonacci function uses caching and tail recursion
+;; for greater efficiency
 (define (fib-3 n)
   (define (thunk rev-seed n)
     (cond [(< n 1) 0]
           [(= n 1) (second rev-seed)]
           [(= n (length rev-seed)) (first rev-seed)]
           [else (thunk
-                 (list* (+ (first rev-seed)
-                           (second rev-seed))
-                        rev-seed)
+                 (cons (+ (first rev-seed)
+                          (second rev-seed))
+                       rev-seed)
                  n)]))
   (thunk (list 2 1) n))
 
+;; prints all Fibonacci number up to the n-th
 (define (test-fib n)
   (for ([i (in-range 1 (+ 1 n))])
     (println (fib-3 i))))
+
+;; test if n is divisible by factor
+;; or that factor is a factor of n
+(define (is-divisible-by n factor)
+  (zero? (modulo n factor)))
+
+;; lists the first n prime numbers, starting from 2
+(define (first-n-primes n) ;; int->list[int]
+  (define (thunk primes)
+    (if (= n (length primes))
+        primes
+        (thunk (cons
+                (for/last
+                    ([i (in-naturals (+ 1 (first primes)))]
+                     #:final (for/and
+                                 ([j primes])
+                               (not (is-divisible-by i j))))
+                  i)
+                primes))))
+  (thunk (list 2)))
+
+;; this version of prime number calculation uses a list crawler
+;; if the multiplier can be adjusted based on input size, it
+;; will always be faster than the previous version, but
+;; I couldn't be bothered.
+(define (first-n-primes-2 n)
+  ;; the multiplier 20 is chosen based on some prime gap thing
+  ;; good for prime numbers up to 1 billion
+  (define search-space (range 2 (* 20 n)))
+  (define (thunk search-pair)
+    (define primes (car search-pair))
+    (define rest (cdr search-pair))
+    (cond
+      [(number? rest) (cons rest primes)]
+      [(empty? rest) primes]
+      [else (thunk (cons
+                    (cons (car rest) primes)
+                    (filter (lambda (p)
+                              (not (is-divisible-by p (car rest))))
+                            (cdr rest))))]))
+  (take-right (thunk (cons (list) search-space)) n))
 
 (define (euler-3 n)
   (define factors
@@ -37,8 +83,10 @@
   (first (reverse prime-factors)))
 
 (define (test-euler-3)
-  (printf "Euler 3: The largest prime factor of 600851475143 is ~v~n" (euler-3 600851475143)))
+  (printf "Euler 3: The largest prime factor of 600851475143 is ~v~n"
+          (euler-3 600851475143)))
 
+;; test if a number is a palindrome
 (define (is-palindrome n)
   (define num-string
     (number->string n))
@@ -48,6 +96,7 @@
     (eq? (string-ref num-string i)
          (string-ref num-string (- (string-length num-string) i 1)))))
 
+;; test if a string is a palindrome
 (define (is-palindrome-2 str)
   (define rev-str (reverse (string->list str)))
   (for/and ([i str]
@@ -68,25 +117,8 @@
   (printf "Euler 4: The largest palindrome from the product of two 3-digit numbers are: ~v~n"
           (euler-4 3)))
 
-(define (is-divisible-by n factor)
-  (zero? (modulo n factor)))
-
-(define (first-n-primes n) ;; int->list[int]
-  (define (thunk primes)
-    (if (= n (length primes))
-        primes
-        (thunk (list*
-                (for/last
-                    ([i (in-naturals (+ 1 (first primes)))]
-                     #:final (for/and
-                                 ([j primes])
-                               (not (is-divisible-by i j))))
-                  i)
-                primes))))
-  (thunk (list 2)))
-
 (define (euler-7)
-  (first (first-n-primes 10001)))
+  (first (first-n-primes-2 10001)))
 
 (define (test-euler-7)
   (printf "Euler 7: The 10,001st prime number is ~v~n" (euler-7)))
@@ -146,7 +178,12 @@
   (printf "Euler 9: The Pythagorean triplet is ~v~n" trip)
   (printf "Their product is ~v~n" (apply * trip)))
 
-
+(define (test-euler-all)
+  (test-euler-3)
+  (test-euler-4)
+  (test-euler-7)
+  (test-euler-8)
+  (test-euler-9))
 
 
 
