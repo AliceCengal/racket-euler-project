@@ -48,13 +48,14 @@
   (thunk (list 2)))
 
 ;; this version of prime number calculation uses a list crawler
-;; if the multiplier can be adjusted based on input size, it
-;; will always be faster than the previous version, but
-;; I couldn't be bothered.
+;; and the sieve method
 (define (first-n-primes-2 n)
-  ;; the multiplier 20 is chosen based on some prime gap thing
-  ;; good for prime numbers up to 1 billion
-  (define search-space (range 2 (* 20 n)))
+  ;; the multiplier is chosen based on some prime gap thingy
+  ;; with a little heuristic spice thrown in
+  (define search-space
+    (range 2 (* 2 n (if (< n 10)
+                        5
+                        (log n)))))
   (define (thunk search-pair)
     (define primes (car search-pair))
     (define rest (cdr search-pair))
@@ -67,6 +68,30 @@
                               (not (is-divisible-by p (car rest))))
                             (cdr rest))))]))
   (take-right (thunk (cons (list) search-space)) n))
+
+;; returns all prime numbers less than n
+(define (primes-below-n n)
+  (define search-space (range 2 n))
+  (define (thunk crawler)
+    (define primes (car crawler))
+    (define rest (cdr crawler))
+    (cond
+      [(number? rest) (cons rest primes)]
+      [(empty? rest) primes]
+      [else (thunk (cons
+                    (cons (car rest) primes)
+                    (filter (lambda (p)
+                              (not (is-divisible-by p (car rest))))
+                            (cdr rest))))]))
+  (thunk (cons (list) search-space)))
+
+(define (test-prime-gen)
+  (time (first-n-primes 10) (void))
+  (time (first-n-primes-2 10) (void)))
+
+(define (test-prime-gen-2)
+  (for/and ([i (range 2 500 2)])
+    (= i (length (first-n-primes-2 i)))))
 
 (define (euler-3 n)
   (define factors
@@ -177,6 +202,13 @@
   (define trip (euler-9))
   (printf "Euler 9: The Pythagorean triplet is ~v~n" trip)
   (printf "Their product is ~v~n" (apply * trip)))
+
+(define (euler-10 n)
+  (apply + (primes-below-n n)))
+
+(define (test-euler-10)
+  (printf "Euler 10: Sum of all primes below two million is ~v~n"
+          (euler-10 2000000)))
 
 (define (test-euler-all)
   (test-euler-3)
