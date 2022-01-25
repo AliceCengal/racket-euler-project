@@ -58,15 +58,15 @@
                         (log n)))))
   (define (thunk search-pair)
     (define primes (car search-pair))
-    (define rest (cdr search-pair))
+    (define next (car (cdr search-pair)))
+    (define rest (cdr (cdr search-pair)))
     (cond
-      [(number? rest) (cons rest primes)]
-      [(empty? rest) primes]
+      [(empty? rest) (cons next primes)]
       [else (thunk (cons
-                    (cons (car rest) primes)
+                    (cons next primes)
                     (filter (lambda (p)
-                              (not (is-divisible-by p (car rest))))
-                            (cdr rest))))]))
+                              (not (is-divisible-by p next)))
+                            rest)))]))
   (take-right (thunk (cons (list) search-space)) n))
 
 ;; returns all prime numbers less than n
@@ -106,6 +106,23 @@
        i)
      factors))
   (first (reverse prime-factors)))
+
+(define (euler-3-2 n)
+  (let* ([factors (build-list (integer-sqrt n)
+                              (lambda (x)
+                                (let ([xx (+ 2 x)])
+                                  (= 0 (modulo n xx)))))]
+         [thunk (lambda (crawler)
+                  (let ([primes (car crawler)]
+                        [next (car (cdr crawler))]
+                        [rest (cdr (cdr crawler))])
+                    (if (empty? rest)
+                        (cons next primes)
+                        (thunk (cons (cons next primes)
+                                     (filter (lambda (rr)
+                                               (not (= 0 (modulo rr next))))
+                                             rest))))))])
+    (thunk (cons (list) factors))))
 
 (define (test-euler-3)
   (printf "Euler 3: The largest prime factor of 600851475143 is ~v~n"
